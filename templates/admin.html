@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Admin Management{% endblock %}
+{% block content %}
+<h2>Admin - User Management</h2>
+<table border="1" style="width: 100%; border-collapse: collapse;">
+  <thead>
+    <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td>{{ u.id }}</td>
+      <td>{{ u.username }}</td>
+      <td>{{ u.email }}</td>
+      <td>{{ u.role }}</td>
+      <td>
+        <!-- Edit link -->
+        <a href="{{ url_for('edit_user', user_id=u.id) }}">Edit</a> | 
+        
+        <!-- Role/Delete actions (Chỉ hiện nếu không phải là tài khoản của chính Admin) -->
+        {% if u.id != current_user.id %}
+          <a href="{{ url_for('change_role', user_id=u.id, role='admin') }}">Set Admin</a> |
+          <a href="{{ url_for('change_role', user_id=u.id, role='manager') }}">Set Manager</a> |
+          <a href="{{ url_for('change_role', user_id=u.id, role='user') }}">Set User</a> |
+          <a href="{{ url_for('delete_user', user_id=u.id) }}" 
+             onclick="return confirm('Bạn có chắc chắn muốn xóa user {{ u.username }}?')">Delete</a>
+        {% else %}
+          (Bạn là Admin hiện tại)
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

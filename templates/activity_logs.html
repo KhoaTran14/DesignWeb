@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Activity Log{% endblock %}
+{% block content %}
+<h2>Activity Log - Báo cáo Hoạt động</h2>
+<p>Hiển thị 100 hoạt động gần nhất của hệ thống.</p>
+<table border="1" style="width: 100%; border-collapse: collapse;">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Thời gian</th>
+            <th>User ID</th>
+            <th>Username</th>
+            <th>Hành động</th>
+            <th>Chi tiết</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.id }}</td>
+            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ log.user_id }}</td>
+            <td>{{ log.user.username if log.user else 'System/Deleted User' }}</td>
+            <td>{{ log.action }}</td>
+            <td>{{ log.details if log.details else 'N/A' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

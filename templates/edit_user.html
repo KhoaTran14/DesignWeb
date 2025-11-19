@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Edit Profile{% endblock %}
+{% block content %}
+<h2>{% if user.id == current_user.id %}Edit Your Profile{% else %}Edit User: {{ user.username }}{% endif %}</h2>
+
+<form method="post">
+  <label>Username</label><br>
+  <input name="username" value="{{ user.username }}" required><br><br>
+
+  <label>Email</label><br>
+  <input name="email" type="email" value="{{ user.email }}" required><br><br>
+
+  <label>New Password (Leave blank to keep current password)</label><br>
+  <input type="password" name="password"><br><br>
+  
+  {% if current_user.is_admin() and user.id != current_user.id %}
+  <label>Role</label><br>
+  <!-- Admin có thể chỉnh sửa role của người khác tại đây nếu muốn,
+       tuy nhiên, chúng ta đã có route change_role, nên bỏ qua để form đơn giản.
+  -->
+  <p>Current Role: **{{ user.role }}** (Sử dụng trang Admin để thay đổi vai trò)</p>
+  {% endif %}
+
+  <button type="submit">Save Changes</button>
+</form>
+
+{% endblock %}

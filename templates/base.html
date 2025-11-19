@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>{% block title %}Quản lý người dùng{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+      /* CSS tối thiểu cho flash messages (fallback) */
+      .flash { padding: 15px; margin-bottom: 20px; border-radius: 5px; font-weight: bold; }
+      .flash.success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
+      .flash.danger { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
+      .flash.info { color: #0c5460; background-color: #d1ecf1; border: 1px solid #bee5eb; }
+      .flash.warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; }
+      .container { width: 90%; max-width: 1000px; margin: 30px auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+      nav { background-color: #007bff; color: white; padding: 15px 5%; text-align: right; border-bottom: 3px solid #0056b3; }
+      nav a { color: white; text-decoration: none; margin-left: 20px; font-weight: bold; transition: color 0.3s; }
+      nav a:hover { color: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <nav>
+    {% if current_user.is_authenticated %}
+      Xin chào, {{ current_user.username }} |
+      <a href="{{ url_for('dashboard') }}">Bảng điều khiển</a> |
+      {% if current_user.is_admin() %}
+        <a href="{{ url_for('admin') }}">Quản trị</a> |
+        <a href="{{ url_for('activity_logs') }}">Nhật ký hoạt động</a> |
+      {% endif %}
+      <a href="{{ url_for('logout') }}">Đăng xuất</a>
+    {% else %}
+      <a href="{{ url_for('login') }}">Đăng nhập</a> |
+      <a href="{{ url_for('register') }}">Đăng ký</a>
+    {% endif %}
+  </nav>
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
