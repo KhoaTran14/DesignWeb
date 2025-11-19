@@ -1,15 +1,27 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-# CHỈ IMPORT db VÀ User TẠI ĐÂY. BỎ ActivityLog để tránh lỗi cache/ImportError.
 from models import db, User 
 import os
 from functools import wraps
 from sqlalchemy.exc import IntegrityError 
+import requests
+
+# Bắt buộc cho Gemini API
+from google import genai 
+from google.genai.errors import APIError
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Lấy Gemini API Key từ biến môi trường
+GEMINI_KEY = os.environ.get('GEMINI_API_KEY')
+if GEMINI_KEY:
+    client = genai.Client(api_key=GEMINI_KEY)
+else:
+    print("WARNING: GEMINI_API_KEY is not set. Gemini features will be disabled.")
+    client = None
 
 # init extensions
 db.init_app(app)
@@ -35,6 +47,47 @@ def log_activity(user_id, action, details=''):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# HÀM MỚI: Gọi Gemini để tóm tắt log
+def summarize_logs_with_gemini():
+    if not client:
+        return "Gemini API không được cấu hình (Thiếu API Key)."
+
+    # Dùng try/except để xử lý lỗi API/kết nối
+    try:
+        # Import ActivityLog bên trong hàm
+        from models import ActivityLog
+        # Lấy 10 log gần nhất
+        recent_logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(10).all()
+        
+        # Format log thành chuỗi để đưa vào prompt
+        log_text = "\n".join([
+            f"- {log.timestamp.strftime('%Y-%m-%d %H:%M:%S')} | User ID {log.user_id} | {log.action}: {log.details}"
+            for log in recent_logs
+        ])
+
+        prompt = f"""
+        Bạn là trợ lý hệ thống. Hãy phân tích và tóm tắt ngắn gọn (trong 3-4 câu) 
+        10 hoạt động gần nhất sau đây của hệ thống quản lý người dùng. 
+        Tóm tắt cần nêu bật các sự kiện quan trọng như đăng ký mới, đăng nhập thành công, và thay đổi quyền. 
+        Sử dụng ngôn ngữ tiếng Việt.
+
+        --- LOGS ---
+        {log_text}
+        """
+        
+        # Gọi Gemini API
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
+        return response.text
+    
+    except APIError as e:
+        return f"Lỗi Gemini API: Không thể tạo tóm tắt."
+    except Exception as e:
+        return f"Lỗi hệ thống khi tạo tóm tắt: {e}"
+
 
 # Home -> redirect to dashboard hoặc login
 @app.route('/')
@@ -107,7 +160,12 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html')
+    # Chỉ Admin mới nhận được tóm tắt AI
+    ai_summary = None
+    if current_user.is_admin():
+        ai_summary = summarize_logs_with_gemini()
+        
+    return render_template('dashboard.html', ai_summary=ai_summary)
 
 # Decorator kiểm tra quyền admin
 def admin_required(func):
